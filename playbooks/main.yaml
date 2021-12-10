@@ -66,6 +66,11 @@
     - name: "Copy dependencies for building images"
       copy: src=../files/ngsite/ dest=/skillcloud-ngsite mode=0640
 
-  handlers:
-    - name: "Restart SSH"
-      service: name=ssh state=restarted
+    - name: "Add Vault variables"
+      include_vars: users.yml
+    - name: "Restart ssh"
+      command: systemctl restart ssh
+    - name: "Restart ufw"
+      command: systemctl restart ufw
+    - name: "reboot"
+      command: shutdown -r 0
