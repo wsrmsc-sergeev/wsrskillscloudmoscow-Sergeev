@@ -11,7 +11,7 @@
       wait_for:
         port: "{{ ansible_port }}"
         host: "{{ inventory_hostname }}"
-        connection_timeout: 5
+        connect_timeout: 5
         timeout: 5
         state: started
       ignore_errors: yes
@@ -30,7 +30,7 @@
     - name: "Update packages list and install curl"
       apt: pkg=curl state=latest update_cache=yes
  
-    - name: "Enable ufw and allow tcp connections on ports 80,8888,1467"
+    - name: "Enable UFW and allow tcp connections on ports 80,8888,1467"
       ufw:
         rule: allow
         proto: tcp
@@ -48,8 +48,24 @@
         dest: "/etc/ssh/sshd_config"
         regexp: "^PubkeyAuthentication"
         line: "PubkeyAuthentication yes"
-      notify:
-        - "Restart ssh service"
+
+    - name: "Install Docker Engine"
+      apt: pkg=docker.io state=latest
+
+    - name: "Copy Docker Compose installation script"
+      copy: src=../files/docker-compose.sh dest=/tmp mode=0755
+
+    - name: "Install Docker Compose"
+      command: /tmp/docker-compose.sh
+
+    - name: "Create directory to deploy project"
+      file:
+        path: /skillcloud-ngsite
+        state: directory
+
+    - name: "Copy dependencies for building images"
+      copy: src=../files/ngsite/ dest=/skillcloud-ngsite mode=0640
+
   handlers:
-    - name: "Restart ssh service"
+    - name: "Restart SSH"
       service: name=ssh state=restarted

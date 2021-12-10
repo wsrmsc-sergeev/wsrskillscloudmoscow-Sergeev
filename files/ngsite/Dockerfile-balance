@@ -1,0 +1,3 @@
+FROM nginx
+
+COPY balance.conf /etc/nginx/nginx.conf
