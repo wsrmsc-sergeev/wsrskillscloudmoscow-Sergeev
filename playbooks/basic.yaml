@@ -1,4 +1,0 @@
-- hosts: all
-  tasks:
-    - name: "Update packages and install curl"
-      apt: pkg=curl state=latest update-cache=true

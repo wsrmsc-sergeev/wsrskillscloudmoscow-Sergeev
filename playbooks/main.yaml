@@ -1,0 +1,55 @@
+- name: "Check ansible_port availability"
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: "Define fallback SSH port"
+      delegate_to: localhost
+      set_fact:
+        fallback_ssh_port: 22
+    - name: "Check configured ansible_port variable"
+      delegate_to: localhost
+      wait_for:
+        port: "{{ ansible_port }}"
+        host: "{{ inventory_hostname }}"
+        connection_timeout: 5
+        timeout: 5
+        state: started
+      ignore_errors: yes
+      register: ansible_port_status
+
+    - name: "Fallback SSH port to default 22"
+      delegate_to: localhost
+      set_fact:
+        ansible_port: "{{ fallback_ssh_port }}"
+      when:
+       - ansible_port_status is failed
+
+- name: "Hosts basic configuration"
+  hosts: all
+  tasks:
+    - name: "Update packages list and install curl"
+      apt: pkg=curl state=latest update_cache=yes
+ 
+    - name: "Enable ufw and allow tcp connections on ports 80,8888,1467"
+      ufw:
+        rule: allow
+        proto: tcp
+        port: 80,8888,1467
+        state: enabled
+    
+    - name: "Configure SSH conection port to 1467"
+      lineinfile:
+        dest: "/etc/ssh/sshd_config"
+        regexp: "^Port"
+        line: "Port 1467"
+
+    - name: "Allow public key usage (SSH connections)"
+      lineinfile:
+        dest: "/etc/ssh/sshd_config"
+        regexp: "^PubkeyAuthentication"
+        line: "PubkeyAuthentication yes"
+      notify:
+        - "Restart ssh service"
+  handlers:
+    - name: "Restart ssh service"
+      service: name=ssh state=restarted
